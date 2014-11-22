@@ -16,8 +16,9 @@ class MySqlDbCursor(std_engine.FetchCursor):
         std_engine.FetchCursor.close(self)
 
 class MySqlDbConnection(std_engine.Connection):
-    def __init__(self, dbconnection, engine):
+    def __init__(self, dbconnection, executemanyBatchSize, engine):
         std_engine.Connection.__init__(self, dbconnection, engine)
+        self.executemanyBatchSize = executemanyBatchSize
     def createFetchCursor(self, dbcursor, numRowsToFetchAtOnce=1):
         '''
         This function creates fetch cursor based on database cursor.
@@ -25,6 +26,8 @@ class MySqlDbConnection(std_engine.Connection):
         If it is 0 - fetch all rows at once
         '''
         return MySqlDbCursor(dbcursor)
+    def executemany(self, query, seq_of_params):
+        std_engine.Connection.executemany_in_batches(self, self.executemanyBatchSize, query, seq_of_params)
 
 class MySqlDbEngine(std_engine.Engine):
     def __init__(self):
@@ -59,7 +62,11 @@ class MySqlDbEngine(std_engine.Engine):
                                           host=parsedUrl.hostname, port=port)
         except Exception as e:
             raise common.MiningError("Failed to connect to database: %s" % str(e))
-        return MySqlDbConnection(cnx, self)
+        try:
+            executemanyBatchSize = int(kwargs.get("batch_size", 100))
+        except:
+            raise common.CompilationError("batch_size parameter should be integer")
+        return MySqlDbConnection(cnx, executemanyBatchSize, self)
     
     def getTableNamesQuery(self):
         return "SHOW TABLES"
