@@ -1,5 +1,5 @@
 {
-    "name": "pcap",
+    "name": "MySQL",
     "description": "MySQL database engine",
     "url": "github:///minersoft/mysql",
     "version": "1.0.1",
